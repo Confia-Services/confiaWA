@@ -5,15 +5,36 @@ export const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY!
 )
 
-export type Step = 'MENU' | 'PROFESSION' | 'NAME' | 'ZONE' | 'CEDULA' | 'CONFIRM' | 'EDIT_NAME' | 'EDIT_ZONE' | 'EDIT_CEDULA' | 'DONE'
+export type Step =
+  | 'MENU'
+  | 'PROFESSION'
+  | 'NAME'
+  | 'ZONE'
+  | 'CEDULA'
+  | 'CONFIRM'
+  | 'EDIT_NAME'
+  | 'EDIT_SERVICE'
+  | 'EDIT_ZONE'
+  | 'EDIT_CEDULA'
+  | 'DONE'
 
 export interface Conversation {
   id: string
   phone: string
   step: Step
-  data: Record<string, string>
+  service: string | null
+  name: string | null
+  zone: string | null
+  cedula: string | null
   created_at: string
 }
+
+type ConvFields = Partial<{
+  service: string | null
+  name: string | null
+  zone: string | null
+  cedula: string | null
+}>
 
 export async function getConversation(phone: string): Promise<Conversation | null> {
   const { data: row, error } = await supabase
@@ -30,7 +51,7 @@ export async function getConversation(phone: string): Promise<Conversation | nul
 export async function createConversation(phone: string): Promise<Conversation> {
   const { data: row, error } = await supabase
     .from('conversations')
-    .insert({ phone, step: 'MENU', data: {} })
+    .insert({ phone, step: 'MENU' })
     .select()
     .single()
   if (error) throw error
@@ -40,26 +61,23 @@ export async function createConversation(phone: string): Promise<Conversation> {
 export async function updateConversation(
   phone: string,
   step: Step,
-  payload?: Record<string, string>
+  fields?: ConvFields
 ) {
-  const update: Record<string, unknown> = { step }
-  if (payload !== undefined) update.data = payload
   const { error } = await supabase
     .from('conversations')
-    .update(update)
+    .update({ step, ...fields })
     .eq('phone', phone)
-    .select()
-    .single()
   if (error) console.error('updateConversation error:', error)
 }
 
-export async function insertPro(phone: string, data: Record<string, string>) {
-  await supabase.from('pros').insert({
-    phone,
-    name: data.name,
-    zone: data.zone,
-    service: data.service,
-    cedula: data.cedula,
+export async function insertPro(conv: Conversation) {
+  const { error } = await supabase.from('pros').insert({
+    phone: conv.phone,
+    name: conv.name,
+    zone: conv.zone,
+    service: conv.service,
+    cedula: conv.cedula,
     state: 'pending',
   })
+  if (error) console.error('insertPro error:', error)
 }
