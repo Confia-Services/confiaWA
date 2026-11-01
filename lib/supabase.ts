@@ -16,32 +16,41 @@ export interface Conversation {
 }
 
 export async function getConversation(phone: string): Promise<Conversation | null> {
-  const { data } = await supabase
+  const { data: row, error } = await supabase
     .from('conversations')
     .select('*')
     .eq('phone', phone)
     .single()
-  return data ?? null
+  if (error && error.code !== 'PGRST116') {
+    console.error('getConversation error:', error)
+  }
+  return row ?? null
 }
 
 export async function createConversation(phone: string): Promise<Conversation> {
-  const { data, error } = await supabase
+  const { data: row, error } = await supabase
     .from('conversations')
     .insert({ phone, step: 'MENU', data: {} })
     .select()
     .single()
   if (error) throw error
-  return data
+  return row
 }
 
 export async function updateConversation(
   phone: string,
   step: Step,
-  data?: Record<string, string>
+  payload?: Record<string, string>
 ) {
   const update: Record<string, unknown> = { step }
-  if (data !== undefined) update.data = data
-  await supabase.from('conversations').update(update).eq('phone', phone)
+  if (payload !== undefined) update.data = payload
+  const { error } = await supabase
+    .from('conversations')
+    .update(update)
+    .eq('phone', phone)
+    .select()
+    .single()
+  if (error) console.error('updateConversation error:', error)
 }
 
 export async function insertPro(phone: string, data: Record<string, string>) {

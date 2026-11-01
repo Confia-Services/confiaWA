@@ -13,8 +13,8 @@ const MSG = {
   welcome: `Bienvenido a Confía, servicios a domicilio en Santo Domingo.
 
 ¿Qué desea hacer?
-1. Registrarme como profesional
-2. Solicitar un servicio`,
+1️⃣ Registrarme como profesional
+2️⃣ Solicitar un servicio`,
 
   menuFallback: `Por favor responda con 1 para registrarse como profesional o 2 para solicitar un servicio.`,
 
@@ -24,31 +24,47 @@ Si desea registrarse como profesional, escriba 1.`,
 
   professionMenu: `¿Cuál es su servicio principal?
 
-1. Masaje
-2. Depilación y estética
-3. Maquillaje
-4. Barbería
-5. Peluquería
-6. Uñas`,
+1️⃣ Masaje
+2️⃣ Depilación y estética
+3️⃣ Maquillaje
+4️⃣ Barbería
+5️⃣ Peluquería
+6️⃣ Uñas`,
 
   professionFallback: `Responda con el número correspondiente a su servicio:
 
-1. Masaje
-2. Depilación y estética
-3. Maquillaje
-4. Barbería
-5. Peluquería
-6. Uñas`,
+1️⃣ Masaje
+2️⃣ Depilación y estética
+3️⃣ Maquillaje
+4️⃣ Barbería
+5️⃣ Peluquería
+6️⃣ Uñas`,
 
   askName: `¿Cuál es su nombre completo, tal como aparece en su cédula?`,
 
   nameFallback: `Por favor escriba su nombre completo.`,
 
-  askZone: `¿En qué sector de Santo Domingo ofrece sus servicios?
+  askZone: `¿En qué zona de Santo Domingo ofrece sus servicios?
 
-Ejemplos: Naco, Piantini, Evaristo Morales, Los Cacicazgos, Bella Vista, La Esperilla.`,
+1️⃣ Naco
+2️⃣ Piantini
+3️⃣ Evaristo Morales
+4️⃣ Los Cacicazgos
+5️⃣ Bella Vista
+6️⃣ La Esperilla
+7️⃣ Serrallés
+8️⃣ Otra zona`,
 
-  zoneFallback: `Por favor indique el sector donde trabaja.`,
+  zoneFallback: `Responda con el número de su zona:
+
+1️⃣ Naco
+2️⃣ Piantini
+3️⃣ Evaristo Morales
+4️⃣ Los Cacicazgos
+5️⃣ Bella Vista
+6️⃣ La Esperilla
+7️⃣ Serrallés
+8️⃣ Otra zona`,
 
   askCedula: `Escriba su número de cédula (ejemplo: 001-0000000-0).`,
 
@@ -59,16 +75,16 @@ Ejemplos: Naco, Piantini, Evaristo Morales, Los Cacicazgos, Bella Vista, La Espe
 
 Nombre: ${data.name}
 Servicio: ${data.service}
-Sector: ${data.zone}
+Zona: ${data.zone}
 Cédula: ${data.cedula}
 
-1. Confirmar
-2. Corregir nombre
-3. Corregir sector
-4. Corregir cédula
-5. Empezar de nuevo`,
+1️⃣ Confirmar
+2️⃣ Corregir nombre
+3️⃣ Corregir zona
+4️⃣ Corregir cédula
+5️⃣ Empezar de nuevo`,
 
-  confirmFallback: `Responda con una de las opciones: 1 para confirmar, 2 para corregir nombre, 3 para corregir sector, 4 para corregir cédula, o 5 para empezar de nuevo.`,
+  confirmFallback: `Responda con una de las opciones: 1 para confirmar, 2 para corregir nombre, 3 para corregir zona, 4 para corregir cédula, o 5 para empezar de nuevo.`,
 
   askEditName: `Escriba su nombre correcto.`,
   askEditZone: `Escriba el sector correcto.`,
@@ -79,7 +95,7 @@ Cédula: ${data.cedula}
 
 Nombre: ${data.name}
 Servicio: ${data.service}
-Sector: ${data.zone}
+Zona: ${data.zone}
 Cédula: ${data.cedula}
 
 Le contactaremos en los próximos días.`,
@@ -100,6 +116,17 @@ const PROFESSIONS: Record<string, string> = {
   '4': 'Barbería',
   '5': 'Peluquería',
   '6': 'Uñas',
+}
+
+const ZONES: Record<string, string> = {
+  '1': 'Naco',
+  '2': 'Piantini',
+  '3': 'Evaristo Morales',
+  '4': 'Los Cacicazgos',
+  '5': 'Bella Vista',
+  '6': 'La Esperilla',
+  '7': 'Serrallés',
+  '8': 'Otra zona',
 }
 
 async function handleMenu(phone: string, text: string, conv: Conversation) {
@@ -135,11 +162,12 @@ async function handleName(phone: string, text: string, conv: Conversation) {
 }
 
 async function handleZone(phone: string, text: string, conv: Conversation) {
-  if (text.length < 2) {
+  const zone = ZONES[text]
+  if (!zone) {
     await sendMessage(phone, MSG.zoneFallback)
     return
   }
-  const data = { ...conv.data, zone: text }
+  const data = { ...conv.data, zone }
   await updateConversation(phone, 'CEDULA', data)
   await sendMessage(phone, MSG.askCedula)
 }
@@ -188,11 +216,12 @@ async function handleEditName(phone: string, text: string, conv: Conversation) {
 }
 
 async function handleEditZone(phone: string, text: string, conv: Conversation) {
-  if (text.length < 2) {
+  const zone = ZONES[text]
+  if (!zone) {
     await sendMessage(phone, MSG.zoneFallback)
     return
   }
-  const data = { ...conv.data, zone: text }
+  const data = { ...conv.data, zone }
   await updateConversation(phone, 'CONFIRM', data)
   await sendMessage(phone, MSG.confirm(data))
 }
