@@ -1,22 +1,15 @@
 # Confía · base de datos v0
 
-Schema Supabase del data map v2.1 (`claude/confia-data-map-v2.md`). 30 tablas, 8 vistas, 18 migraciones. **Aplicado en `confia-prod` el 26 oct 2026 (0001–0018 + seed).** Probado end-to-end contra Postgres 16.
+Schema Supabase del data map v2.1 (`claude/confia-data-map-v2.md`). 30 tablas, 8 vistas. **Aplicado en `confia-prod` el 26 oct 2026 (0001–0018 + seed).** Los archivos 0001–0010 se perdieron y en prod solo quedaron registradas 0011–0018; el 13 nov 2026 se regeneró `0000_baseline.sql` desde el catálogo de prod, de modo que `0000 + 0011–0018 + seed` reconstruye la base completa (verificado con `supabase/tests/run_local.sh`: huella de catálogo idéntica a prod).
 
 ## Estructura
 
 ```
 supabase/
   migrations/
-    0001_extensions_enums.sql   enums + helpers (setting_int)
-    0002_config.sql             settings · zones · categories · services
-    0003_people.sql             staff · pros · clients · client_addresses
-    0004_verification.sql       KYC · PGR · referencias · portafolio · redes · audit · GATE del sello
-    0005_availability.sql       franjas
-    0006_transactions.sql       requests · dispatch_offers · jobs · cola · cierre · ratings · disputas
-    0007_messaging.sql          wa_events · bot_sessions · messages · relay guard
-    0008_views_functions.sql    pro_stats · pro_public_profile · client_stats · checklist · dispatch_candidates · signals
-    0009_rls.sql                RLS (service role escribe; staff lee)
-    0010_cron.sql               cierres a 24 h · ofertas vencidas · PGR vencido · borrado 172-13
+    0000_baseline.sql           esquema completo previo a 0011, regenerado desde confia-prod (13 nov 2026).
+                                Sustituye a 0001–0010 (extensiones y enums · config · personas · verificación ·
+                                franjas · transacciones · mensajería · vistas y funciones · RLS · crons), cuyos archivos se perdieron.
     0011_services_v1.sql        lista definitiva de servicios (26 oct)
     0012_channels.sql           multicanal: client_identities · requests.channel · channel_events · bot_sessions por (channel, line, external_id)
     0013_client_confirm_quality.sql  veto del cliente (tarjeta) · pedir por nombre · calidad: qc_due · cron_quality_suspend
@@ -27,8 +20,10 @@ supabase/
     0018_storage_buckets.sql    buckets kyc · pgr · job-photos (privados) · portfolio (público), 10 MB, solo imágenes/PDF
   seed.sql                      zonas, categorías, servicios definitivos (26 oct), settings
   tests/
-    smoke.sql                   ciclo completo: onboarding → sello → solicitud → sí → job → relay → cola → cierre → disputa
-    run_local.sh                corre todo en un Postgres local (stub de auth)
+    run_local.sh                reconstruye todo en un Postgres local (0000 → 0011–0018 → seed) y imprime la huella del catálogo
+    _supabase_stub.sql          roles, auth.uid(), storage.buckets… lo mínimo de la plataforma para correr sin Supabase
+    schema_catalog.sql          snapshot del catálogo como texto; corre igual en prod y en local para compararlos
+    (smoke.sql, el ciclo completo onboarding → cierre → disputa, se perdió con 0001–0010; pendiente de rehacer)
 ```
 
 ## Aplicar en Supabase
@@ -41,6 +36,22 @@ supabase db push          # aplica solo las migrations/ que falten
 ```
 
 La tabla `supabase_migrations.schema_migrations` lleva el registro; no re-aplicar a mano.
+
+`0000_baseline.sql` ya está aplicada en prod (es el esquema que dejaron 0001–0010). Antes del primer `db push` hay que registrarla sin ejecutarla, o la CLI intentará aplicarla y fallará:
+
+```bash
+supabase migration repair --status applied 0000
+```
+
+## Probar en local
+
+Requiere Postgres 16+ con `pg_cron` instalado y precargado (`shared_preload_libraries='pg_cron'`, `cron.database_name='confia_test'`) y una conexión superusuario por variables `PG*`:
+
+```bash
+DBNAME=confia_test supabase/tests/run_local.sh
+```
+
+Al final imprime un md5 por clase de objeto (tablas, constraints, funciones, vistas, policies, crons…). Para comparar con prod, ejecuta `supabase/tests/schema_catalog.sql` en el SQL editor de Supabase cambiando la última línea por `select k, md5(coalesce(v,'')), length(coalesce(v,'')) from cat order by k`. Todo debe coincidir salvo `default_acl_postgres_public` si el local no es Postgres 17 (el privilegio `m` de MAINTAIN no existe en 16).
 
 Buckets ya creados (0018). Falta solo: crear el primer usuario staff en Auth y hacer `insert into staff`.
 
