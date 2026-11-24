@@ -55,23 +55,15 @@ Si desea registrarse como profesional, escriba 1.`,
 
 1️⃣ Naco
 2️⃣ Piantini
-3️⃣ Evaristo Morales
-4️⃣ Los Cacicazgos
-5️⃣ Bella Vista
-6️⃣ La Esperilla
-7️⃣ Serrallés
-8️⃣ Otra zona`,
+3️⃣ Gazcue
+4️⃣ Bella Vista`,
 
   zoneFallback: `Responda con el número de su zona:
 
 1️⃣ Naco
 2️⃣ Piantini
-3️⃣ Evaristo Morales
-4️⃣ Los Cacicazgos
-5️⃣ Bella Vista
-6️⃣ La Esperilla
-7️⃣ Serrallés
-8️⃣ Otra zona`,
+3️⃣ Gazcue
+4️⃣ Bella Vista`,
 
   askCedula: `Escriba su número de cédula (ejemplo: 001-0000000-0).`,
 
@@ -109,12 +101,8 @@ Cédula: ${d.cedula ?? '—'}
 
 1️⃣ Naco
 2️⃣ Piantini
-3️⃣ Evaristo Morales
-4️⃣ Los Cacicazgos
-5️⃣ Bella Vista
-6️⃣ La Esperilla
-7️⃣ Serrallés
-8️⃣ Otra zona`,
+3️⃣ Gazcue
+4️⃣ Bella Vista`,
 
   askEditCedula: `Escriba su cédula correcta (ejemplo: 001-0000000-0).`,
 
@@ -149,12 +137,8 @@ const PROFESSIONS: Record<string, string> = {
 const ZONES: Record<string, string> = {
   '1': 'Naco',
   '2': 'Piantini',
-  '3': 'Evaristo Morales',
-  '4': 'Los Cacicazgos',
-  '5': 'Bella Vista',
-  '6': 'La Esperilla',
-  '7': 'Serrallés',
-  '8': 'Otra zona',
+  '3': 'Gazcue',
+  '4': 'Bella Vista',
 }
 
 async function handleMenu(phone: string, text: string) {
