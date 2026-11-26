@@ -9,13 +9,15 @@ const CHANNEL = 'whatsapp'
 const LINE = 'pros'
 
 export type Step =
-  | 'MENU' | 'PROFESSION' | 'NAME' | 'ZONE' | 'CEDULA' | 'CONFIRM'
-  | 'EDIT_NAME' | 'EDIT_SERVICE' | 'EDIT_ZONE' | 'EDIT_CEDULA' | 'DONE'
+  | 'MENU' | 'PROFESSION' | 'SPECIALTY' | 'PRICE' | 'NAME' | 'ZONE' | 'CEDULA' | 'CONFIRM'
+  | 'EDIT_NAME' | 'EDIT_SERVICE' | 'EDIT_SPECIALTY' | 'EDIT_PRICE' | 'EDIT_ZONE' | 'EDIT_CEDULA' | 'DONE'
 
 export interface Conversation {
   phone: string
   step: Step
   service: string | null
+  specialty: string | null
+  rate: string | null
   name: string | null
   zone: string | null
   cedula: string | null
@@ -23,6 +25,8 @@ export interface Conversation {
 
 type ConvFields = Partial<{
   service: string | null
+  specialty: string | null
+  rate: string | null
   name: string | null
   zone: string | null
   cedula: string | null
@@ -34,6 +38,8 @@ function rowToConv(row: Record<string, unknown>): Conversation {
     phone: row.external_id as string,
     step: row.state as Step,
     service: ctx.service ?? null,
+    specialty: ctx.specialty ?? null,
+    rate: ctx.rate ?? null,
     name: ctx.name ?? null,
     zone: ctx.zone ?? null,
     cedula: ctx.cedula ?? null,
@@ -115,14 +121,14 @@ const CATEGORY_SLUGS: Record<string, string> = {
 }
 
 export async function insertPro(conv: Conversation) {
-  const { data: zoneRow } = await supabase
+  const { data: zoneRow, error: zoneError } = await supabase
     .from('zones')
     .select('id')
     .eq('name', conv.zone)
     .single()
 
-  if (!zoneRow) {
-    console.error('insertPro: zone not found:', conv.zone)
+  if (zoneError || !zoneRow) {
+    console.error('insertPro: zone lookup failed for:', conv.zone, zoneError)
     return
   }
 
@@ -140,26 +146,28 @@ export async function insertPro(conv: Conversation) {
     .single()
 
   if (proError) {
-    console.error('insertPro error:', proError)
+    console.error('insertPro: pros insert failed:', proError)
     return
   }
 
   const categorySlug = CATEGORY_SLUGS[conv.service ?? '']
   if (!categorySlug) {
-    console.error('insertPro: unknown service:', conv.service)
+    console.error('insertPro: unknown service slug for:', conv.service)
     return
   }
 
-  const { data: catRow } = await supabase
+  const { data: catRow, error: catLookupError } = await supabase
     .from('categories')
     .select('id')
     .eq('slug', categorySlug)
     .single()
 
-  if (!catRow) {
-    console.error('insertPro: category not found:', categorySlug)
+  if (catLookupError || !catRow) {
+    console.error('insertPro: category lookup failed for slug:', categorySlug, catLookupError)
     return
   }
+
+  const rateNum = conv.rate ? parseFloat(conv.rate) : null
 
   const { error: catError } = await supabase
     .from('pro_categories')
@@ -167,7 +175,11 @@ export async function insertPro(conv: Conversation) {
       pro_id: (pro as { id: string }).id,
       category_id: (catRow as { id: string }).id,
       status: 'pendiente',
+      rate: rateNum,
+      specialty: conv.specialty === 'ninguna' ? null : conv.specialty,
     })
 
-  if (catError) console.error('insertProCategory error:', catError)
+  if (catError) {
+    console.error('insertPro: pro_categories insert failed:', catError)
+  }
 }

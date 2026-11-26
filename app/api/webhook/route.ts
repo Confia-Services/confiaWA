@@ -12,8 +12,19 @@ import {
 type DisplayData = {
   name: string | null
   service: string | null
+  specialty: string | null
+  rate: string | null
   zone: string | null
   cedula: string | null
+}
+
+const SPECIALTY_EXAMPLES: Record<string, string> = {
+  'Masaje': 'relajante, deportivo, piedras calientes',
+  'Depilación y estética': 'cera, depilación facial, tratamientos',
+  'Maquillaje': 'novias, artístico, natural',
+  'Barbería': 'fade, lineups, afeitado clásico',
+  'Peluquería': 'coloración, keratina, corte',
+  'Uñas': 'gel, acrílico, nail art',
 }
 
 const MSG = {
@@ -47,6 +58,17 @@ Si desea registrarse como profesional, escriba 1.`,
 5️⃣ Peluquería
 6️⃣ Uñas`,
 
+  askSpecialty: (service: string | null) => {
+    const examples = SPECIALTY_EXAMPLES[service ?? ''] ?? 'masajes, coloración, uñas gel'
+    return `¿Tiene alguna especialidad? Escríbala brevemente (ej. ${examples}) o escriba ninguna.`
+  },
+
+  specialtyFallback: `Por favor escriba su especialidad o escriba ninguna.`,
+
+  askPrice: `¿Cuánto cobra por servicio en pesos dominicanos? Solo el número (ejemplo: 1500).`,
+
+  priceFallback: `Por favor escriba un monto válido en pesos dominicanos (solo números, ejemplo: 1500).`,
+
   askName: `¿Cuál es su nombre completo, tal como aparece en su cédula?`,
 
   nameFallback: `Por favor escriba su nombre completo.`,
@@ -74,17 +96,21 @@ Si desea registrarse como profesional, escriba 1.`,
 
 Nombre: ${d.name ?? '—'}
 Servicio: ${d.service ?? '—'}
+Especialidad: ${d.specialty ?? 'Ninguna'}
+Precio por servicio: RD$${d.rate ?? '—'}
 Zona: ${d.zone ?? '—'}
 Cédula: ${d.cedula ?? '—'}
 
 1️⃣ Confirmar
 2️⃣ Corregir nombre
 3️⃣ Corregir servicio
-4️⃣ Corregir zona
-5️⃣ Corregir cédula
-6️⃣ Empezar de nuevo`,
+4️⃣ Corregir especialidad
+5️⃣ Corregir precio
+6️⃣ Corregir zona
+7️⃣ Corregir cédula
+8️⃣ Empezar de nuevo`,
 
-  confirmFallback: `Responda con el número de su opción: 1 confirmar, 2 corregir nombre, 3 corregir servicio, 4 corregir zona, 5 corregir cédula, 6 empezar de nuevo.`,
+  confirmFallback: `Responda con el número de su opción: 1 confirmar, 2–7 corregir un campo, 8 empezar de nuevo.`,
 
   askEditName: `Escriba su nombre correcto.`,
 
@@ -96,6 +122,13 @@ Cédula: ${d.cedula ?? '—'}
 4️⃣ Barbería
 5️⃣ Peluquería
 6️⃣ Uñas`,
+
+  askEditSpecialty: (service: string | null) => {
+    const examples = SPECIALTY_EXAMPLES[service ?? ''] ?? 'masajes, coloración, uñas gel'
+    return `Escriba su especialidad correcta (ej. ${examples}) o escriba ninguna.`
+  },
+
+  askEditPrice: `Escriba su precio correcto en pesos dominicanos (solo el número).`,
 
   askEditZone: `¿Cuál es su zona correcta?
 
@@ -111,6 +144,8 @@ Cédula: ${d.cedula ?? '—'}
 
 Nombre: ${d.name}
 Servicio: ${d.service}
+Especialidad: ${d.specialty ?? 'Ninguna'}
+Precio por servicio: RD$${d.rate}
 Zona: ${d.zone}
 Cédula: ${d.cedula}
 
@@ -158,7 +193,28 @@ async function handleProfession(phone: string, text: string) {
     await sendMessage(phone, MSG.professionFallback)
     return
   }
-  await updateConversation(phone, 'NAME', { service })
+  await updateConversation(phone, 'SPECIALTY', { service })
+  await sendMessage(phone, MSG.askSpecialty(service))
+}
+
+async function handleSpecialty(phone: string, text: string, conv: Conversation) {
+  if (text.length < 2) {
+    await sendMessage(phone, MSG.specialtyFallback)
+    return
+  }
+  const specialty = text.toLowerCase() === 'ninguna' ? 'ninguna' : text
+  await updateConversation(phone, 'PRICE', { specialty })
+  await sendMessage(phone, MSG.askPrice)
+}
+
+async function handlePrice(phone: string, text: string) {
+  const cleaned = text.replace(/[^\d.]/g, '')
+  const num = parseFloat(cleaned)
+  if (isNaN(num) || num <= 0) {
+    await sendMessage(phone, MSG.priceFallback)
+    return
+  }
+  await updateConversation(phone, 'NAME', { rate: cleaned })
   await sendMessage(phone, MSG.askName)
 }
 
@@ -203,13 +259,22 @@ async function handleConfirm(phone: string, text: string, conv: Conversation) {
     await updateConversation(phone, 'EDIT_SERVICE')
     await sendMessage(phone, MSG.askEditService)
   } else if (text === '4') {
+    await updateConversation(phone, 'EDIT_SPECIALTY')
+    await sendMessage(phone, MSG.askEditSpecialty(conv.service))
+  } else if (text === '5') {
+    await updateConversation(phone, 'EDIT_PRICE')
+    await sendMessage(phone, MSG.askEditPrice)
+  } else if (text === '6') {
     await updateConversation(phone, 'EDIT_ZONE')
     await sendMessage(phone, MSG.askEditZone)
-  } else if (text === '5') {
+  } else if (text === '7') {
     await updateConversation(phone, 'EDIT_CEDULA')
     await sendMessage(phone, MSG.askEditCedula)
-  } else if (text === '6') {
-    await updateConversation(phone, 'MENU', { service: null, name: null, zone: null, cedula: null })
+  } else if (text === '8') {
+    await updateConversation(phone, 'MENU', {
+      service: null, specialty: null, rate: null,
+      name: null, zone: null, cedula: null,
+    })
     await sendMessage(phone, MSG.welcome)
   } else {
     await sendMessage(phone, MSG.confirmFallback)
@@ -233,6 +298,27 @@ async function handleEditService(phone: string, text: string, conv: Conversation
   }
   await updateConversation(phone, 'CONFIRM', { service })
   await sendMessage(phone, MSG.confirm({ ...conv, service }))
+}
+
+async function handleEditSpecialty(phone: string, text: string, conv: Conversation) {
+  if (text.length < 2) {
+    await sendMessage(phone, MSG.specialtyFallback)
+    return
+  }
+  const specialty = text.toLowerCase() === 'ninguna' ? 'ninguna' : text
+  await updateConversation(phone, 'CONFIRM', { specialty })
+  await sendMessage(phone, MSG.confirm({ ...conv, specialty }))
+}
+
+async function handleEditPrice(phone: string, text: string, conv: Conversation) {
+  const cleaned = text.replace(/[^\d.]/g, '')
+  const num = parseFloat(cleaned)
+  if (isNaN(num) || num <= 0) {
+    await sendMessage(phone, MSG.priceFallback)
+    return
+  }
+  await updateConversation(phone, 'CONFIRM', { rate: cleaned })
+  await sendMessage(phone, MSG.confirm({ ...conv, rate: cleaned }))
 }
 
 async function handleEditZone(phone: string, text: string, conv: Conversation) {
@@ -265,6 +351,10 @@ async function routeStep(step: Step, phone: string, text: string, conv: Conversa
       return handleMenu(phone, text)
     case 'PROFESSION':
       return handleProfession(phone, text)
+    case 'SPECIALTY':
+      return handleSpecialty(phone, text, conv)
+    case 'PRICE':
+      return handlePrice(phone, text)
     case 'NAME':
       return handleName(phone, text)
     case 'ZONE':
@@ -277,6 +367,10 @@ async function routeStep(step: Step, phone: string, text: string, conv: Conversa
       return handleEditName(phone, text, conv)
     case 'EDIT_SERVICE':
       return handleEditService(phone, text, conv)
+    case 'EDIT_SPECIALTY':
+      return handleEditSpecialty(phone, text, conv)
+    case 'EDIT_PRICE':
+      return handleEditPrice(phone, text, conv)
     case 'EDIT_ZONE':
       return handleEditZone(phone, text, conv)
     case 'EDIT_CEDULA':
