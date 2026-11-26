@@ -6,7 +6,7 @@ export const supabase = createClient(
 )
 
 const CHANNEL = 'whatsapp'
-const line = () => process.env.WHATSAPP_PHONE_ID!
+const LINE = 'pros'
 
 export type Step =
   | 'MENU' | 'PROFESSION' | 'NAME' | 'ZONE' | 'CEDULA' | 'CONFIRM'
@@ -45,7 +45,7 @@ export async function getConversation(phone: string): Promise<Conversation | nul
     .from('bot_sessions')
     .select('*')
     .eq('channel', CHANNEL)
-    .eq('line', line())
+    .eq('line', LINE)
     .eq('external_id', phone)
     .single()
   if (error && error.code !== 'PGRST116') {
@@ -59,7 +59,7 @@ export async function createConversation(phone: string): Promise<Conversation> {
     .from('bot_sessions')
     .insert({
       channel: CHANNEL,
-      line: line(),
+      line: LINE,
       external_id: phone,
       party_type: 'pro',
       state: 'MENU',
@@ -81,7 +81,7 @@ export async function updateConversation(
       .from('bot_sessions')
       .select('context')
       .eq('channel', CHANNEL)
-      .eq('line', line())
+      .eq('line', LINE)
       .eq('external_id', phone)
       .single()
 
@@ -91,7 +91,7 @@ export async function updateConversation(
       .from('bot_sessions')
       .update({ state: step, context: newContext })
       .eq('channel', CHANNEL)
-      .eq('line', line())
+      .eq('line', LINE)
       .eq('external_id', phone)
     if (error) console.error('updateConversation error:', error)
   } else {
@@ -99,7 +99,7 @@ export async function updateConversation(
       .from('bot_sessions')
       .update({ state: step })
       .eq('channel', CHANNEL)
-      .eq('line', line())
+      .eq('line', LINE)
       .eq('external_id', phone)
     if (error) console.error('updateConversation error:', error)
   }
