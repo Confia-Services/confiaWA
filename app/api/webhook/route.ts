@@ -99,7 +99,7 @@ Servicio: ${d.service ?? '—'}
 Especialidad: ${d.specialty ?? 'Ninguna'}
 Precio por servicio: RD$${d.rate ?? '—'}
 Zona: ${d.zone ?? '—'}
-Cédula: ${d.cedula ?? '—'}
+Cédula: ${d.cedula ? formatCedula(d.cedula) : '—'}
 
 1️⃣ Confirmar
 2️⃣ Corregir nombre
@@ -147,7 +147,7 @@ Servicio: ${d.service}
 Especialidad: ${d.specialty ?? 'Ninguna'}
 Precio por servicio: RD$${d.rate}
 Zona: ${d.zone}
-Cédula: ${d.cedula}
+Cédula: ${d.cedula ? formatCedula(d.cedula) : '—'}
 
 Le contactaremos en los próximos días.`,
 
@@ -240,7 +240,11 @@ async function handleZone(phone: string, text: string) {
 function parseCedula(text: string): string | null {
   const digits = text.replace(/\D/g, '')
   if (digits.length !== 11) return null
-  return `${digits.slice(0, 3)}-${digits.slice(3, 10)}-${digits.slice(10)}`
+  return digits
+}
+
+function formatCedula(cedula: string): string {
+  return `${cedula.slice(0, 3)}-${cedula.slice(3, 10)}-${cedula.slice(10)}`
 }
 
 async function handleCedula(phone: string, text: string, conv: Conversation) {
