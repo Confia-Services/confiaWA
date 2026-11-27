@@ -87,9 +87,9 @@ Si desea registrarse como profesional, escriba 1.`,
 3️⃣ Gazcue
 4️⃣ Bella Vista`,
 
-  askCedula: `Escriba su número de cédula (ejemplo: 001-0000000-0).`,
+  askCedula: `Escriba su número de cédula dominicana (11 dígitos, ejemplo: 00100000000 o 001-0000000-0).`,
 
-  cedulaFallback: `Por favor escriba su número de cédula.`,
+  cedulaFallback: `La cédula debe tener 11 dígitos. Escríbala sin guiones o con guiones (ejemplo: 00100000000 o 001-0000000-0).`,
 
   confirm: (d: DisplayData) =>
     `Verifique sus datos:
@@ -137,7 +137,7 @@ Cédula: ${d.cedula ?? '—'}
 3️⃣ Gazcue
 4️⃣ Bella Vista`,
 
-  askEditCedula: `Escriba su cédula correcta (ejemplo: 001-0000000-0).`,
+  askEditCedula: `Escriba su cédula correcta (11 dígitos, ejemplo: 00100000000 o 001-0000000-0).`,
 
   done: (d: DisplayData) =>
     `Registro confirmado.
@@ -237,9 +237,15 @@ async function handleZone(phone: string, text: string) {
   await sendMessage(phone, MSG.askCedula)
 }
 
+function parseCedula(text: string): string | null {
+  const digits = text.replace(/\D/g, '')
+  if (digits.length !== 11) return null
+  return `${digits.slice(0, 3)}-${digits.slice(3, 10)}-${digits.slice(10)}`
+}
+
 async function handleCedula(phone: string, text: string, conv: Conversation) {
-  const cedula = text.replace(/\s/g, '')
-  if (cedula.length < 5) {
+  const cedula = parseCedula(text)
+  if (!cedula) {
     await sendMessage(phone, MSG.cedulaFallback)
     return
   }
@@ -332,8 +338,8 @@ async function handleEditZone(phone: string, text: string, conv: Conversation) {
 }
 
 async function handleEditCedula(phone: string, text: string, conv: Conversation) {
-  const cedula = text.replace(/\s/g, '')
-  if (cedula.length < 5) {
+  const cedula = parseCedula(text)
+  if (!cedula) {
     await sendMessage(phone, MSG.cedulaFallback)
     return
   }
